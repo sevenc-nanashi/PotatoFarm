@@ -12,6 +12,8 @@ const {
 const glob_m = require('glob')
 require("colors")
 
+// -- Functions ----------------------------------------
+
 function glob(pattern) {
   return new Promise((resolve, reject) => {
     glob_m(pattern, (error, result) => {
@@ -33,7 +35,7 @@ function streamMove(src, dest) {
 }
 
 function printSection(section, color) {
-  console.log("\n-- " [color] + section.trim()[color] + " " + "-".repeat(30 - section.length).grey)
+  console.log("\n-- " [color] + section.trim()[color] + " " + "-".repeat(50 - section.length).grey)
 }
 
 function printWarn(content) {
@@ -193,18 +195,20 @@ class Level {
     }
   }
 }
+
+// -- Sonolus endpoints --------------------------------
+
 app.get('/info', async (req, res) => {
-  printSection("/info", "green")
+  printSection("Sonolus: /info", "green")
   let levels = []
-  let level_fs = (await fs.readdir('./levels', {
+  let levelFs = (await fs.readdir('./levels', {
     withFileTypes: true
   })).filter(dirent => dirent.isDirectory())
-  for (let level of level_fs) {
-    if ((await Promise.all(["data.sus", "bgm.mp3", "jacket.png"].map(async file => {
-        try {
-          await fs.stat(`./levels/${level.name}/${file}`)
+  for (let level of levelFs) {
+    if ((await Promise.all(["data.sus", "bgm.*", "jacket.*"].map(async file => {
+        if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
           return true
-        } catch (e) {
+        } else {
           printWarn(`./levels/${level.name}/${file} が見つかりませんでした。`)
           return false
         }
@@ -228,7 +232,7 @@ app.get('/info', async (req, res) => {
 })
 
 app.get("/levels/:id", async (req, res) => {
-  printSection(`/levels/${req.params.id}`, "yellow")
+  printSection(`Sonolus: /levels/${req.params.id}`, "yellow")
   let level_data = await fs.readFile(`./levels/${req.params.id}/data.sus`, 'utf8')
   let title = level_data.match(/#TITLE\s+"(.+)"/)[1]
   printInfo(`./levels/${req.params.id} - ${title} を読み込んでいます。`)
@@ -242,38 +246,41 @@ app.get("/levels/:id", async (req, res) => {
     }))
 })
 
-app.get("/local/:id/bgm.mp3", async (req, res) => {
-  printSection(`/local/${req.params.id}/bgm.mp3`, "yellow")
-  res.send(await fs.readFile(`./levels/${req.params.id}/bgm.mp3`))
+app.get("/local/:id/bgm", async (req, res) => {
+  printSection(`Sonolus: /local/${req.params.id}/bgm`, "yellow")
+  res.send(await fs.readFile(await glob(`./levels/${req.params.id}/bgm.*`)[0]))
 })
 
 app.get("/local/:id/jacket", async (req, res) => {
-  printSection(`/local/${req.params.id}/jacket`, "yellow")
-  res.send(await fs.readFile(`./levels/${req.params.id}/jacket.png`))
+  printSection(`Sonolus: /local/${req.params.id}/jacket`, "yellow")
+  path = (await glob(`./levels/${req.params.id}/jacket.*`))[0]
+  if (path) {
+    printInfo(`${path} が見つかりました。`)
+    res.send(await fs.readFile(path))
+  } else {
+    printWarn(`${path} が見つかりませんでした。`)
+    res.send(await fs.readFile(`./public/empty.png`))
+  }
 })
 
 app.get("/local/:id/data", async (req, res) => {
-  printSection(`/local/${req.params.id}/data`, "yellow")
+  printSection(`Sonolus: /local/${req.params.id}/data`, "yellow")
   printInfo(`./levels/${req.params.id}/data.sus を変換中です。`)
   let data = await fs.readFile(`./levels/${req.params.id}/data.sus`, 'utf8')
   res.send(gzipSync(JSON.stringify(fromSus(data))))
 })
-// win = win_
-// app.listen(port, "0.0.0.0", () => {
-//   console.log(`Example app listening at http://localhost:${port}`)
-// })
-module.exports = {
-  app
-}
+
+// -- Download mover -----------------------------------
+
 async function queryDownload() {
   for (g of await glob(process.env.USERPROFILE + "/Downloads/*-*T*Z*.sus")) {
     filename = g.split("/").pop().replace(/\.sus$/, "").replace(/^.*?-/, "").replace(/ /, ":").replace(/T(\d+)-/, "T$1:")
 
     if (Date.now() - Date.parse(filename) < 1500) {
-      printSection(`downloads`, "blue")
+      printSection(`Downloads`, "blue")
       printInfo(`${g} を読み込んでいます。`)
       let susData = await fs.readFile(g, 'utf8')
-      let designer = susData.match(/#DESIGNER\s+"(.+)"/)[1]
+      let designer = susData.match(/#DESIGNER\s+"(.*)"/)[1]
       if (designer.length <= 0) {
         printWarn("譜面作者が設定されていません。")
         printWarn("譜面作者を動かす先のディレクトリの名前に変更して下さい。")
@@ -295,6 +302,58 @@ async function queryDownload() {
     }
   }
 }
+
+// -- UI -----------------------------------------------
+
+app.use(express.static('public'));
+
+app.get("/", async (req, res) => {
+  printSection("UI: /", "magenta")
+  let levels = []
+  let levelFs = (await fs.readdir('./levels', {
+    withFileTypes: true
+  })).filter(dirent => dirent.isDirectory())
+  printInfo("譜面を取得しています。")
+  for (let level of levelFs) {
+    let existFiles = (await Promise.all(["data.sus", "bgm.*", "jacket.*"].map(async file => {
+      if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
+        return true
+      } else {
+        printWarn(`./levels/${level.name}/${file} が見つかりませんでした。`)
+        return false
+      }
+    })))
+
+    // printInfo(`./levels/${level.name} が有効なディレクトリとして認識されました。`)
+    data = {
+      name: level.name
+    }
+
+    if (existFiles[0]) {
+      let levelData = await fs.readFile(`./levels/${level.name}/data.sus`, 'utf8')
+      data.title = levelData.match(/#TITLE\s+"(.+)"/)[1]
+      data.size = levelData.length
+      if (levelData.match(/^This file was generated by (.*)\./)) {
+        data.editor = levelData.match(/^This file was generated by (.*)\./)[1]
+      } else {
+        data.editor = "?"
+      }
+    } else {
+      data.title = "???"
+      data.size = "?"
+      data.editor = "?"
+    }
+
+    levels.push(data)
+
+  }
+  res.render("./index.ejs", {
+    levels
+  });
+})
+
+// -- Main ---------------------------------------------
+
 if (require.main === module) {
   setInterval(queryDownload, 1000)
   app.listen(5010, "0.0.0.0", async () => {
@@ -302,7 +361,7 @@ if (require.main === module) {
       family,
       internal
     }) => family === "IPv4" && !internal)[0]
-    printSection("Hello!", "red")
+    printSection("System: Hello!", "red")
     printInfo(`PotatoFarmへようこそ！`)
     printInfo(``)
     printInfo(`Sonolusを開き、サーバーのURLに以下を入力して下さい：`)
