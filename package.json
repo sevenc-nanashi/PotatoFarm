@@ -2,7 +2,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon ./app.js",
-    "compile": "nexe app.js -t 14.15.3 -o PotatoFarm.exe",
+    "compile": "nexe app.js -t 14.15.3 -o PotatoFarm.exe"
   },
   "dependencies": {
     "colors": "^1.4.0",
