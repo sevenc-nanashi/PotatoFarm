@@ -222,7 +222,17 @@ app.get('/info', async (req, res) => {
     }
   }
   res.send(JSON.stringify({
-    levels: levels.map(level => level.json()),
+    levels: {
+      items: levels.map(level => level.json()),
+      options: [
+        {
+            name: "#KEYWORDS",
+            placeholder: "#KEYWORDS",
+            query: "keywords",
+            type: "text"
+        }
+    ]
+    },
     skins: [],
     backgrounds: [],
     particles: [],
