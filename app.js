@@ -258,7 +258,7 @@ app.get("/levels/:id", async (req, res) => {
 
 app.get("/local/:id/bgm", async (req, res) => {
   printSection(`Sonolus: /local/${req.params.id}/bgm`, "yellow")
-  res.send(await fs.readFile(await glob(`./levels/${req.params.id}/bgm.*`)[0]))
+  res.send(await fs.readFile((await glob(`./levels/${req.params.id}/bgm.*`))[0]))
 })
 
 app.get("/local/:id/jacket", async (req, res) => {
