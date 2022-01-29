@@ -56,7 +56,7 @@ class Level {
       "author": "-",
       "bgm": {
         "type": "LevelBgm",
-        "url": `/local/${this.id}/bgm.mp3`
+        "url": `/local/${this.id}/bgm`
       },
       "cover": {
         "type": "LevelCover",
