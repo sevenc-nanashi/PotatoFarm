@@ -13,7 +13,6 @@ levels:
     data.sus
 ```
 のようにフォルダを配置すると動きます。
-[PaletteWorks](https://paletteworks.mkpo.li)で`level_name`の部分を譜面作者に設定するとダウンロード時に自動で移動します。
 
 ## PaletteWorksの自動移動
 ```yml
