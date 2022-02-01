@@ -23,5 +23,6 @@ levels:
     jacket.png
     data.sus
 ```
-のようにファイルが配置されているときに、![image](https://user-images.githubusercontent.com/59691627/152070495-c9c691e7-5a86-4da7-a62f-3a6f67066000.png)
+のようにファイルが配置されているときに、  
+![image](https://user-images.githubusercontent.com/59691627/152070495-c9c691e7-5a86-4da7-a62f-3a6f67066000.png)   
 このように`譜面作者`欄に`tottemohayai`（フォルダ名）を入れるとダウンロード時に自動で移動されます。
