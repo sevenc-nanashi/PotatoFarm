@@ -1,22 +1,18 @@
-const express = require('express')
+import express, { Request, Response } from 'express'
 const app = express()
-const os = require('os')
-const fs = require('fs').promises
-const fssync = require('fs')
-const {
-  fromSus
-} = require('sonolus-pjsekai-engine')
-const {
-  gzipSync
-} = require('zlib')
-const glob_m = require('glob')
-require("colors")
+import os from 'os'
+import { promises as fs } from 'fs'
+import fssync from 'fs'
+import { fromSus } from 'sonolus-pjsekai-engine'
+import { gzipSync } from 'zlib'
+import syncGlob from 'glob'
+import "colors"
 
 // -- Functions ----------------------------------------
 
-function glob(pattern) {
+function glob(pattern: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    glob_m(pattern, (error, result) => {
+    syncGlob(pattern, (error: Error | null, result: string[]) => {
       if (error) reject(error)
       else resolve(result)
     })
@@ -25,28 +21,31 @@ function glob(pattern) {
 const port = 5010
 let win = null
 
-function streamMove(src, dest) {
+function streamMove(src: string, dest: string) {
   return new Promise((resolve, reject) => {
-    fssync.createReadStream(src).pipe(fssync.createWriteStream(dest)).on('finish', async (data) => {
+    fssync.createReadStream(src).pipe(fssync.createWriteStream(dest)).on('finish', async () => {
       await fs.unlink(src)
-      resolve(data)
+      resolve(null)
     }).on('error', reject)
   })
 }
 
-function printSection(section, color) {
-  console.log("\n-- " [color] + section.trim()[color] + " " + "-".repeat(50 - section.length).grey)
+function printSection(section: string, color: string) {
+  // @ts-ignore
+  console.log("\n-- "[color] + section.trim()[color] + " " + "-".repeat(50 - section.length).grey)
 }
 
-function printWarn(content) {
+function printWarn(content: string) {
   console.log("!) ".yellow + content.trim())
 }
 
-function printInfo(content) {
+function printInfo(content: string) {
   console.log("i) ".blue + content.trim())
 }
 class Level {
-  constructor(id, data) {
+  data: any
+  id: string
+  constructor(id: string, data: { title: string }) {
     this.id = id
     this.data = data
   }
@@ -198,26 +197,26 @@ class Level {
 
 // -- Sonolus endpoints --------------------------------
 
-app.get('/info', async (req, res) => {
+app.get('/info', async (req: Request, res: Response) => {
   printSection("Sonolus: /info", "green")
   let levels = []
   let levelFs = (await fs.readdir('./levels', {
     withFileTypes: true
-  })).filter(dirent => dirent.isDirectory())
+  })).filter((dirent: fssync.Dirent) => dirent.isDirectory())
   for (let level of levelFs) {
     if ((await Promise.all(["data.sus", "bgm.*", "jacket.*"].map(async file => {
-        if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
-          return true
-        } else {
-          printWarn(`./levels/${level.name}/${file} が見つかりませんでした。`)
-          return false
-        }
-      }))).every(e => e)) {
+      if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
+        return true
+      } else {
+        printWarn(`./levels/${level.name}/${file} が見つかりませんでした。`)
+        return false
+      }
+    }))).every(e => e)) {
 
       printInfo(`./levels/${level.name} が有効なディレクトリとして認識されました。`)
       let level_data = await fs.readFile(`./levels/${level.name}/data.sus`, 'utf8')
       levels.push(new Level(level.name, {
-        title: level_data.match(/#TITLE\s+"(.+)"/)[1],
+        title: level_data.match(/#TITLE\s+"(.+)"/)![1],
       }))
     }
   }
@@ -226,12 +225,12 @@ app.get('/info', async (req, res) => {
       items: levels.map(level => level.json()),
       options: [
         {
-            name: "#KEYWORDS",
-            placeholder: "#KEYWORDS",
-            query: "keywords",
-            type: "text"
+          name: "#KEYWORDS",
+          placeholder: "#KEYWORDS",
+          query: "keywords",
+          type: "text"
         }
-    ]
+      ]
     },
     skins: [],
     backgrounds: [],
@@ -241,10 +240,10 @@ app.get('/info', async (req, res) => {
   }))
 })
 
-app.get("/levels/:id", async (req, res) => {
+app.get("/levels/:id", async (req: Request, res: Response) => {
   printSection(`Sonolus: /levels/${req.params.id}`, "yellow")
   let level_data = await fs.readFile(`./levels/${req.params.id}/data.sus`, 'utf8')
-  let title = level_data.match(/#TITLE\s+"(.+)"/)[1]
+  let title = level_data.match(/#TITLE\s+"(.+)"/)![1]
   printInfo(`./levels/${req.params.id} - ${title} を読み込んでいます。`)
   res.send(
     JSON.stringify({
@@ -256,14 +255,14 @@ app.get("/levels/:id", async (req, res) => {
     }))
 })
 
-app.get("/local/:id/bgm", async (req, res) => {
+app.get("/local/:id/bgm", async (req: Request, res: Response) => {
   printSection(`Sonolus: /local/${req.params.id}/bgm`, "yellow")
   res.send(await fs.readFile((await glob(`./levels/${req.params.id}/bgm.*`))[0]))
 })
 
-app.get("/local/:id/jacket", async (req, res) => {
+app.get("/local/:id/jacket", async (req: Request, res: Response) => {
   printSection(`Sonolus: /local/${req.params.id}/jacket`, "yellow")
-  path = (await glob(`./levels/${req.params.id}/jacket.*`))[0]
+  let path: string | undefined = (await glob(`./levels/${req.params.id}/jacket.*`))[0]
   if (path) {
     printInfo(`${path} が見つかりました。`)
     res.send(await fs.readFile(path))
@@ -273,7 +272,7 @@ app.get("/local/:id/jacket", async (req, res) => {
   }
 })
 
-app.get("/local/:id/data", async (req, res) => {
+app.get("/local/:id/data", async (req: Request, res: Response) => {
   printSection(`Sonolus: /local/${req.params.id}/data`, "yellow")
   printInfo(`./levels/${req.params.id}/data.sus を変換中です。`)
   let data = await fs.readFile(`./levels/${req.params.id}/data.sus`, 'utf8')
@@ -283,14 +282,14 @@ app.get("/local/:id/data", async (req, res) => {
 // -- Download mover -----------------------------------
 
 async function queryDownload() {
-  for (g of await glob(process.env.USERPROFILE + "/Downloads/*-*T*Z*.sus")) {
-    filename = g.split("/").pop().replace(/\.sus$/, "").replace(/^.*?-/, "").replace(/ /, ":").replace(/T(\d+)-/, "T$1:")
+  for (let g of await glob(process.env.USERPROFILE + "/Downloads/*-*T*Z*.sus")) {
+    let filename = g.split("/").pop()!.replace(/\.sus$/, "").replace(/^.*?-/, "").replace(/ /, ":").replace(/T(\d+)-/, "T$1:")
 
     if (Date.now() - Date.parse(filename) < 1500) {
       printSection(`Downloads`, "blue")
       printInfo(`${g} を読み込んでいます。`)
       let susData = await fs.readFile(g, 'utf8')
-      let designer = susData.match(/#DESIGNER\s+"(.*)"/)[1]
+      let designer = susData.match(/#DESIGNER\s+"(.*)"/)![1]
       if (designer.length <= 0) {
         printWarn("譜面作者が設定されていません。")
         printWarn("譜面作者を動かす先のディレクトリの名前に変更して下さい。")
@@ -300,7 +299,7 @@ async function queryDownload() {
           printInfo(`${designer} が見つかりました。./levels/${designer}/data.sus に移動します。`)
           await streamMove(g, `./levels/${designer}/data.sus`)
           printInfo(`移動しました。`)
-        } catch (e) {
+        } catch (e: any) {
           if (e.code === "ENOENT") {
             printWarn(`./levels/${designer} が見つかりませんでした。`)
             printWarn("譜面作者にスペルミスがないか確認して下さい。")
@@ -317,7 +316,7 @@ async function queryDownload() {
 
 app.use(express.static('public'));
 
-app.get("/", async (req, res) => {
+app.get("/", async (_req: Request, res: Response) => {
   printSection("UI: /", "magenta")
   let levels = []
   let levelFs = (await fs.readdir('./levels', {
@@ -335,16 +334,19 @@ app.get("/", async (req, res) => {
     })))
 
     // printInfo(`./levels/${level.name} が有効なディレクトリとして認識されました。`)
-    data = {
-      name: level.name
+    let data: LevelData = {
+      name: level.name,
+      title: undefined,
+      size: undefined,
+      editor: undefined,
     }
 
     if (existFiles[0]) {
       let levelData = await fs.readFile(`./levels/${level.name}/data.sus`, 'utf8')
-      data.title = levelData.match(/#TITLE\s+"(.+)"/)[1]
+      data.title = levelData.match(/#TITLE\s+"(.+)"/)![1]
       data.size = levelData.length
       if (levelData.match(/^This file was generated by (.*)\./)) {
-        data.editor = levelData.match(/^This file was generated by (.*)\./)[1]
+        data.editor = levelData.match(/^This file was generated by (.*)\./)![1]
       } else {
         data.editor = "?"
       }
@@ -368,13 +370,16 @@ if (require.main === module) {
   setInterval(queryDownload, 1000)
   app.listen(5010, "0.0.0.0", async () => {
     const ip = Object.values(os.networkInterfaces()).flat().filter(({
+      // @ts-ignore
       family,
+      // @ts-ignore
       internal
     }) => family === "IPv4" && !internal)[0]
     printSection("System: Hello!", "red")
     printInfo(`PotatoFarmへようこそ！`)
     printInfo(``)
     printInfo(`Sonolusを開き、サーバーのURLに以下を入力して下さい：`)
+    // @ts-ignore
     printInfo(`  http://${ip.address}:5010`.underline)
     printInfo(``)
     printInfo(`Ctrl+Cで終了します。`)
@@ -389,4 +394,13 @@ if (require.main === module) {
       printInfo(`levelsディレクトリを作成しました。`)
     }
   })
+}
+
+// -- Types --------------------------------------------
+
+interface LevelData {
+  name: string | undefined
+  title: string | undefined
+  size: string | number | undefined
+  editor: string | undefined
 }
