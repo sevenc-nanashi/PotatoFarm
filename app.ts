@@ -36,11 +36,11 @@ function printSection(section: string, color: string) {
 }
 
 function printWarn(content: string) {
-  console.log("!) ".yellow + content.trim())
+  console.log("!) ".yellow + content)
 }
 
 function printInfo(content: string) {
-  console.log("i) ".blue + content.trim())
+  console.log("i) ".blue + content)
 }
 class Level {
   data: any
@@ -366,34 +366,66 @@ app.get("/", async (_req: Request, res: Response) => {
 
 // -- Main ---------------------------------------------
 
-if (require.main === module) {
-  setInterval(queryDownload, 1000)
-  app.listen(5010, "0.0.0.0", async () => {
-    const ip = Object.values(os.networkInterfaces()).flat().filter(({
+function tryListen(port: number, tries: number) {
+  return new Promise((resolve, reject) => {
+    app.listen(port, "0.0.0.0", async () => {
+      resolve(null)
+      const ip = Object.values(os.networkInterfaces()).flat().filter(({
+        // @ts-ignore
+        family,
+        // @ts-ignore
+        internal
+      }) => family === "IPv4" && !internal)[0]
+      printSection("System: Hello!", "red")
+      printInfo(`PotatoFarmへようこそ！`)
+      printInfo(``)
+      printInfo(`Sonolusを開き、サーバーのURLに以下を入力して下さい：`)
       // @ts-ignore
-      family,
+      printInfo("  " + `http://${ip.address}:${port}`.underline)
+      printInfo(`メニューにアクセスするにはブラウザで以下のURLを開いてください：`)
       // @ts-ignore
-      internal
-    }) => family === "IPv4" && !internal)[0]
-    printSection("System: Hello!", "red")
-    printInfo(`PotatoFarmへようこそ！`)
-    printInfo(``)
-    printInfo(`Sonolusを開き、サーバーのURLに以下を入力して下さい：`)
-    // @ts-ignore
-    printInfo(`  http://${ip.address}:5010`.underline)
-    printInfo(``)
-    printInfo(`Ctrl+Cで終了します。`)
-    printInfo(``)
-    printInfo(`Created by ` + `名無し｡(@sevenc-nanashi)`.blue)
-    printInfo(``)
+      printInfo("  " + `http://localhost:${port}`.underline)
+      if(tries !== 0){
+        printWarn("")
+        printWarn(`ポート ${port - tries} が使用中のため、${port} が使用されています。`)
+        printWarn(`ポート ${port - tries} を開放するか、メニューでポート番号を変更して下さい。`)
+        printWarn("")
+      }
+      printInfo(``)
+      printInfo(`Ctrl+Cで終了します。`)
+      printInfo(``)
+      printInfo(`Created by ` + `名無し｡(@sevenc-nanashi)`.blue)
+      printInfo(``)
 
-    try {
-      await fs.access(`./levels`)
-    } catch {
-      await fs.mkdir(`./levels`)
-      printInfo(`levelsディレクトリを作成しました。`)
-    }
+      try {
+        await fs.access(`./levels`)
+      } catch {
+        await fs.mkdir(`./levels`)
+        printInfo(`levelsディレクトリを作成しました。`)
+      }
+    }).on("error", reject)
   })
+}
+
+async function main() {
+  setInterval(queryDownload, 1000)
+  for (let i = 0; i < 10; i++) {
+    let port = 5010 + i
+    try {
+      await tryListen(port, i)
+      break
+    } catch (e: any) {
+      if (e.code === "EADDRINUSE") {
+        continue
+      } else {
+        throw e
+      }
+    }
+  }
+}
+
+if (require.main === module) {
+  main()
 }
 
 // -- Types --------------------------------------------
