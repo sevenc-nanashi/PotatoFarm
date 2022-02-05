@@ -1,15 +1,10 @@
 {
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon ./app.js",
-    "css": "postcss public/styles/index.css -o public/tailwind/index.css",
-    "compile": "nexe app.js -t 14.15.3 -o PotatoFarm.exe"
+    "start": "ts-node app.ts",
+    "dev": "ts-node-dev -T ./app.ts ",
+    "compile": "tsc --outDir dist && cd dist && nexe app.js -t 14.5.0 -o PotatoFarm.exe"
   },
   "dependencies": {
-    "@types/express": "^4.17.13",
-    "@types/express-serve-static-core": "^4.17.28",
-    "@types/glob": "^7.2.0",
-    "@types/node": "^17.0.14",
     "autoprefixer": "^10.4.2",
     "colors": "^1.4.0",
     "ejs": "^3.1.6",
@@ -18,11 +13,16 @@
     "nexe": "^4.0.0-beta.19",
     "postcss": "^8.4.5",
     "postcss-cli": "^9.1.0",
+    "sonolus-core": "^1.0.0",
     "sonolus-pjsekai-engine": "0.1.0-beta.10",
-    "tailwindcss": "^3.0.15",
     "ts-node": "^10.4.0"
   },
   "devDependencies": {
-    "nodemon": "^1.19.4"
+    "@types/express": "^4.17.13",
+    "@types/express-serve-static-core": "^4.17.28",
+    "@types/glob": "^7.2.0",
+    "@types/node": "^17.0.14",
+    "nodemon": "^1.19.4",
+    "ts-node-dev": "^1.1.8"
   }
 }
