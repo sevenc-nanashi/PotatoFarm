@@ -2,7 +2,7 @@
   "scripts": {
     "start": "ts-node app.ts",
     "dev": "ts-node-dev -T ./app.ts ",
-    "compile": "tsc --outDir dist && cd dist && nexe app.js -t 14.5.0 -o PotatoFarm.exe"
+    "compile": "tsc --outDir dist && nexe -i dist/app.js -t 12.9.1 -o PotatoFarm.exe"
   },
   "dependencies": {
     "autoprefixer": "^10.4.2",

@@ -35,7 +35,13 @@ async function setConfig(data: any) {
 // -- Functions ----------------------------------------
 
 function parseEnv(str: string) {
-  return str.replaceAll(/%([a-zA-Z0-9]+)%/g, (_match, name: string) => process.env[name])
+  let nstr = str
+  let pstr = ""
+  while(nstr != pstr){
+      pstr = nstr;
+      nstr = nstr.replace(/%([a-zA-Z0-9]+)%/g, function (_match, name) { return process.env[name]; });
+  }
+  return nstr;
 }
 
 function glob(pattern: string): Promise<string[]> {
@@ -337,7 +343,7 @@ app.get("/local/:id/data", async (req: Request, res: Response) => {
 // -- Download mover -----------------------------------
 
 async function queryDownload() {
-  for (let g of await glob(parseEnv(await getConfig("downloadPath")))) {
+  for (let g of await glob(parseEnv(await getConfig("downloadPath")) + "/*.sus")) {
     let filename = g.split("/").pop()!.replace(/\.sus$/, "").replace(/^.*?-/, "").replace(/ /, ":").replace(/T(\d+)-/, "T$1:")
 
     if (Date.now() - Date.parse(filename) < 1500) {
