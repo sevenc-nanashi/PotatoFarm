@@ -5,11 +5,11 @@ async function saveConfig(){
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      port: document.getElementById('port').value,
+      port: parseInt(document.getElementById('port').value),
       downloadPath: document.getElementById('downloadPath').value,
     })
   })
-  if(response.ok){
+  if((await response.json())['status'] === 'ok'){
     alert('セーブしました。')
   }else{
     alert('セーブに失敗しました。')

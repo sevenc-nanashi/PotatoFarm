@@ -1,13 +1,18 @@
-import { Request, Response } from 'express'
 import express = require("express")
-const app = express()
-import os = require("os")
+import { Express, Request, Response } from 'express'
 import { promises as fs } from 'fs'
-import fssync = require("fs")
 import { fromSus } from 'sonolus-pjsekai-engine'
 import { gzipSync } from 'zlib'
 import syncGlob = require("glob")
 import "colors"
+import "ejs"
+import fssync = require("fs")
+import os = require("os")
+
+const app = express()
+const version = JSON.parse(fssync.readFileSync("package.json", 'utf8'))["version"]
+
+app.use(express.json())
 
 // -- Config -------------------------------------------
 
@@ -29,19 +34,20 @@ async function getConfig(key: string = undefined): Promise<any> {
 async function setConfig(data: any) {
   const text = await fs.readFile(process.env.USERPROFILE + '/PotatoFarm.json', 'utf8');
   const json = JSON.parse(text);
-  return await fs.writeFile(process.env.USERPROFILE + '/PotatoFarm.json', JSON.stringify({...json, ...data}))
+  return await fs.writeFile(process.env.USERPROFILE + '/PotatoFarm.json',
+    JSON.stringify({
+      ...defaultConfig, ...json, ...data
+    }))
 }
 
 // -- Functions ----------------------------------------
 
+function replaceSlash(path: string) {
+  return path.replace(/\\/g, '/')
+}
+
 function parseEnv(str: string) {
-  let nstr = str
-  let pstr = ""
-  while(nstr != pstr){
-      pstr = nstr;
-      nstr = nstr.replace(/%([a-zA-Z0-9]+)%/g, function (_match, name) { return process.env[name]; });
-  }
-  return nstr;
+  return str.replace(/%([a-zA-Z0-9]+)%/g, function (_match, name) { return process.env[name]; });
 }
 
 function glob(pattern: string): Promise<string[]> {
@@ -329,7 +335,7 @@ app.get("/local/:id/jacket", async (req: Request, res: Response) => {
     res.send(await fs.readFile(path))
   } else {
     printWarn(`${path} が見つかりませんでした。`)
-    res.send(await fs.readFile(`./public/empty.png`))
+    res.send(await fs.readFile(`public/empty.png`))
   }
 })
 
@@ -420,9 +426,10 @@ app.get("/", async (_req: Request, res: Response) => {
     levels.push(data)
 
   }
-  res.render("./index.ejs", {
+  res.render("index.ejs", {
     levels,
     defaultConfig,
+    file: replaceSlash(process.env.USERPROFILE + '/PotatoFarm.json'),
     config: await getConfig(),
   });
 })
@@ -432,13 +439,15 @@ app.post("/ui/config", async (req: Request, res: Response) => {
   printInfo("設定を更新しています。")
   await setConfig(req.body)
   printInfo("設定を更新しました。")
-  res.send(JSON.stringify({"status": "ok"}))
+  res.send(JSON.stringify({ "status": "ok" }))
 })
 
 // -- Main ---------------------------------------------
 
 function tryListen(port: number, tries: number) {
   return new Promise((resolve, reject) => {
+    console.log(port)
+
     app.listen(port, "0.0.0.0", async () => {
       resolve(null)
       const ip = Object.values(os.networkInterfaces()).flat().filter(({
@@ -448,7 +457,7 @@ function tryListen(port: number, tries: number) {
         internal
       }) => family === "IPv4" && !internal)[0]
       printSection("System: Hello!", "red")
-      printInfo(`PotatoFarmへようこそ！`)
+      printInfo(`PotatoFarm v${version}へようこそ！`)
       printInfo(``)
       printInfo(`Sonolusを開き、サーバーのURLに以下を入力して下さい：`)
       // @ts-ignore

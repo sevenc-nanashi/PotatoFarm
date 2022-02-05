@@ -30,16 +30,20 @@
       <% } %>
     </div>
     <h2>オプション</h2>
-    <div>
+    <div class="mb-2">
       <div>
-        <h4>ポート</h4>
+        <h4>ポート *</h4>
         <input type="text" class="form-control" id="port" placeholder="<%= defaultConfig.port %>" value="<%= config.port %>">
       </div>
       <div>
         <h4>ダウンロードフォルダ</h4>
         <input type="text" class="form-control" id="downloadPath" placeholder="<%= defaultConfig.downloadPath %>" value="<%= config.downloadPath %>">
       </div>
-      <button class="btn btn-primary" onclick="saveConfig()">保存</button>
+      <div>
+        <p>*の設定は再起動後に反映されます。</p>
+        <p>設定ファイル：<%= file %></p>
+        <button class="btn btn-primary" onclick="saveConfig()">保存</button>
+      </div>
     </div>
   </div>
 </body>
