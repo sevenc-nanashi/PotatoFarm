@@ -1,8 +1,21 @@
 {
+  "name": "potatofarm",
+  "displayName": "PotatoFarm",
+  "description": "PotatoFarm is a Sonolus server for testing charts.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sevenc-nanashi/PotatoFarm.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "sevenc-nanashi",
+    "url": "https://sevenc7c.com"
+  },
+  "version": "1.0.0",
   "scripts": {
     "start": "ts-node app.ts",
     "dev": "ts-node-dev -T ./app.ts ",
-    "compile": "tsc --outDir dist && nexe -i dist/app.js -t 12.9.1 -o PotatoFarm.exe"
+    "compile": "tsc --outDir dist && nexe -i dist/app.js -r public -r package.json -t 12.9.1 -o dist/PotatoFarm.exe"
   },
   "dependencies": {
     "autoprefixer": "^10.4.2",
