@@ -266,6 +266,35 @@ app.get('/info', async (req: Request, res: Response) => {
   }))
 })
 
+app.get('/levels/list', async (req: Request, res: Response) => {
+  printSection("Sonolus: /levels/list", "green")
+  let levels = []
+  let levelFs = (await fs.readdir('./levels', {
+    withFileTypes: true
+  })).filter((dirent: fssync.Dirent) => dirent.isDirectory())
+  for (let level of levelFs) {
+    if ((await Promise.all(["data.sus", "bgm.*", "jacket.*"].map(async file => {
+      if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
+        return true
+      } else {
+        printWarn(`./levels/${level.name}/${file} が見つかりませんでした。`)
+        return false
+      }
+    }))).every(e => e)) {
+
+      printInfo(`./levels/${level.name} が有効なディレクトリとして認識されました。`)
+      let level_data = await fs.readFile(`./levels/${level.name}/data.sus`, 'utf8')
+      levels.push(new Level(level.name, {
+        title: level_data.match(/#TITLE\s+"(.+)"/)![1],
+      }))
+    }
+  }
+  res.send(JSON.stringify({
+    items: levels.map(level => level.json()),
+    pageCount: 1,
+  }))
+})
+
 app.get("/levels/:id", async (req: Request, res: Response) => {
   printSection(`Sonolus: /levels/${req.params.id}`, "yellow")
   let level_data = await fs.readFile(`./levels/${req.params.id}/data.sus`, 'utf8')
