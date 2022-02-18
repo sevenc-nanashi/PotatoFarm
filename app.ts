@@ -350,9 +350,7 @@ app.get("/local/:id/data", async (req: Request, res: Response) => {
 
 async function queryDownload() {
   for (let g of await glob(parseEnv(await getConfig("downloadPath")) + "/*.sus")) {
-    let filename = g.split("/").pop()!.replace(/\.sus$/, "").replace(/^.*?-/, "").replace(/ /, ":").replace(/T(\d+)-/, "T$1:")
-
-    if (Date.now() - Date.parse(filename) < 1500) {
+    if (Date.now() - (await fs.stat(g)).ctime.getTime() < 1500) {
       printSection(`Downloads`, "blue")
       printInfo(`${g} を読み込んでいます。`)
       let susData = await fs.readFile(g, 'utf8')
@@ -446,8 +444,6 @@ app.post("/ui/config", async (req: Request, res: Response) => {
 
 function tryListen(port: number, tries: number) {
   return new Promise((resolve, reject) => {
-    console.log(port)
-
     app.listen(port, "0.0.0.0", async () => {
       resolve(null)
       const ip = Object.values(os.networkInterfaces()).flat().filter(({
