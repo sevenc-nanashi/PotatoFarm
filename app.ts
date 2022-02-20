@@ -8,9 +8,12 @@ import "colors"
 import "ejs"
 import fssync = require("fs")
 import os = require("os")
+import axios from 'axios'
+import { createHash } from "crypto"
 
 const app = express()
 const version = JSON.parse(fssync.readFileSync("package.json", 'utf8'))["version"]
+let engine = null
 
 app.use(express.json())
 
@@ -103,116 +106,7 @@ class Level {
         "type": "LevelData",
         "url": `/local/${this.id}/data`
       },
-      "engine": {
-        "author": "Burrito",
-        "background": {
-          "author": "Sonolus",
-          "configuration": {
-            "hash": "d4367d5b719299e702ca26a2923ce5ef3235c1c7",
-            "type": "BackgroundConfiguration",
-            "url": "https://servers.purplepalette.net/repository/BackgroundConfiguration/d4367d5b719299e702ca26a2923ce5ef3235c1c7"
-          },
-          "data": {
-            "hash": "5e32e7fc235b0952da1b7aa0a03e7745e1a7b3d2",
-            "type": "BackgroundData",
-            "url": "https://servers.purplepalette.net/repository/BackgroundData/5e32e7fc235b0952da1b7aa0a03e7745e1a7b3d2"
-          },
-          "image": {
-            "hash": "8dd5a1d679ffdd22d109fca9ccef37272a4fc5db",
-            "type": "BackgroundImage",
-            "url": "https://servers.purplepalette.net/repository/BackgroundImage/8dd5a1d679ffdd22d109fca9ccef37272a4fc5db"
-          },
-          "name": "pjsekai.live",
-          "subtitle": "Project Sekai: Colorful Stage!",
-          "thumbnail": {
-            "hash": "bc97c960f8cb509ed17ebfe7f15bf2a089a98b90",
-            "type": "BackgroundThumbnail",
-            "url": "https://servers.purplepalette.net/repository/BackgroundThumbnail/bc97c960f8cb509ed17ebfe7f15bf2a089a98b90"
-          },
-          "title": "Project Sekai",
-          "version": 2
-        },
-        "configuration": {
-          "hash": "55ada0ef19553e6a6742cffbb66f7dce9f85a7ee",
-          "type": "EngineConfiguration",
-          "url": "https://servers.purplepalette.net/repository/EngineConfiguration/55ada0ef19553e6a6742cffbb66f7dce9f85a7ee"
-        },
-        "data": {
-          "hash": "86773c786f00b8b6cd2f6f99be11f62281385133",
-          "type": "EngineData",
-          "url": "https://servers.purplepalette.net/repository/EngineData/86773c786f00b8b6cd2f6f99be11f62281385133"
-        },
-        "effect": {
-          "author": "Sonolus",
-          "data": {
-            "hash": "b98f36f0370dd5b4cdaa67d594c203f07bbed055",
-            "type": "EffectData",
-            "url": "https://servers.purplepalette.net/repository/EffectData/b98f36f0370dd5b4cdaa67d594c203f07bbed055"
-          },
-          "name": "pjsekai.classic",
-          "subtitle": "プロジェクトセカイ カラフルステージ!",
-          "thumbnail": {
-            "hash": "e5f439916eac9bbd316276e20aed999993653560",
-            "type": "EffectThumbnail",
-            "url": "https://servers.purplepalette.net/repository/EffectThumbnail/e5f439916eac9bbd316276e20aed999993653560"
-          },
-          "title": "プロセカ",
-          "version": 2
-        },
-        "name": "pjsekai",
-        "particle": {
-          "author": "Sonolus",
-          "data": {
-            "hash": "f84c5dead70ad62a00217589a73a07e7421818a8",
-            "type": "ParticleData",
-            "url": "https://servers.purplepalette.net/repository/ParticleData/f84c5dead70ad62a00217589a73a07e7421818a8"
-          },
-          "name": "pjsekai.classic",
-          "subtitle": "Project Sekai: Colorful Stage!",
-          "texture": {
-            "hash": "4850a8f335204108c439def535bcf693c7f8d050",
-            "type": "ParticleTexture",
-            "url": "https://servers.purplepalette.net/repository/ParticleTexture/4850a8f335204108c439def535bcf693c7f8d050"
-          },
-          "thumbnail": {
-            "hash": "e5f439916eac9bbd316276e20aed999993653560",
-            "type": "ParticleThumbnail",
-            "url": "https://servers.purplepalette.net/repository/ParticleThumbnail/e5f439916eac9bbd316276e20aed999993653560"
-          },
-          "title": "Project Sekai",
-          "version": 1
-        },
-        "skin": {
-          "author": "Sonolus",
-          "data": {
-            "hash": "ad8a6ffa2ef4f742fee5ec3b917933cc3d2654af",
-            "type": "SkinData",
-            "url": "https://servers.purplepalette.net/repository/SkinData/ad8a6ffa2ef4f742fee5ec3b917933cc3d2654af"
-          },
-          "name": "pjsekai.classic",
-          "subtitle": "Project Sekai: Colorful Stage!",
-          "texture": {
-            "hash": "2ed3b0d09918f89e167df8b2f17ad8601162c33c",
-            "type": "SkinTexture",
-            "url": "https://servers.purplepalette.net/repository/SkinTexture/2ed3b0d09918f89e167df8b2f17ad8601162c33c"
-          },
-          "thumbnail": {
-            "hash": "24faf30cc2e0d0f51aeca3815ef523306b627289",
-            "type": "SkinThumbnail",
-            "url": "https://servers.purplepalette.net/repository/SkinThumbnail/24faf30cc2e0d0f51aeca3815ef523306b627289"
-          },
-          "title": "Project Sekai",
-          "version": 2
-        },
-        "subtitle": "プロジェクトセカイ カラフルステージ!",
-        "thumbnail": {
-          "hash": "e5f439916eac9bbd316276e20aed999993653560",
-          "type": "EngineThumbnail",
-          "url": "https://servers.purplepalette.net/repository/EngineThumbnail/e5f439916eac9bbd316276e20aed999993653560"
-        },
-        "title": "プロセカ",
-        "version": 4
-      },
+      "engine": engine,
       "name": this.id,
       "rating": 0,
       "title": this.data.title,
@@ -483,8 +377,19 @@ function tryListen(port: number, tries: number) {
   })
 }
 
+async function setEngine() {
+  engine = JSON.parse(
+    JSON.stringify(
+      (await axios.get("https://servers.purplepalette.net/engines/pjsekai")).data
+    ).replace(/"\//g, '"https://servers.purplepalette.net/')
+  ).item
+  engine.effect.data.url = "/se.gz"
+  engine.effect.data.hash = createHash("sha1").update(await fs.readFile("./public/se.gz")).digest("hex")
+}
+
 async function main() {
   setInterval(queryDownload, 1000)
+  setEngine()
   for (let i = 0; i < 10; i++) {
     let port = (await getConfig("port")) + i
     try {
