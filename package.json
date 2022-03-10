@@ -16,7 +16,18 @@
     "start": "ts-node app.ts",
     "dev": "ts-node-dev -T ./app.ts",
     "se": "ts-node se.ts",
-    "compile": "tsc --outDir dist && nexe -i dist/app.js -r public -r package.json -t 12.9.1 -o dist/PotatoFarm.exe"
+    "compile": "run-s compile:ts compile:bin",
+    "compile:ts": "tsc --outDir dist",
+    "compile:bin": "run-p compile:bin:windows compile:bin:linux compile:bin:mac",
+    "compile:bin:windows": "run-p compile:bin:windows:x64 compile:bin:windows:x86",
+    "compile:bin:windows:x64": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target windows-x64 -o dist/PotatoFarm-win-x64.exe",
+    "compile:bin:windows:x86": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target windows-x86 -o dist/PotatoFarm-win-x86.exe",
+    "compile:bin:linux": "run-p compile:bin:linux:x64 compile:bin:linux:x86",
+    "compile:bin:linux:x64": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target linux-x64 -o dist/PotatoFarm-linux-x64",
+    "compile:bin:linux:x86": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target linux-x86 -o dist/PotatoFarm-linux-x86",
+    "compile:bin:mac": "run-p compile:bin:mac:x64 compile:bin:mac:x86",
+    "compile:bin:mac:x64": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target mac-x64 -o dist/PotatoFarm-mac-x64",
+    "compile:bin:mac:x86": "nexe -i dist/app.js -r public -r package.json -t 12.9.1 --target mac-x86 -o dist/PotatoFarm-max-x86"
   },
   "dependencies": {
     "@types/axios": "^0.14.0",
@@ -39,6 +50,7 @@
     "@types/glob": "^7.2.0",
     "@types/node": "^17.0.14",
     "nodemon": "^1.19.4",
+    "npm-run-all": "^4.1.5",
     "ts-node-dev": "^1.1.8"
   }
 }
