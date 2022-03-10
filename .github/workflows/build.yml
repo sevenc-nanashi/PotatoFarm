@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: '14'
       - name: "Install dependencies"
-        run: npm install
+        run: npm install --no-optional
       - name: "Compile"
         run: npm compile
       - name: "Push to releases"
