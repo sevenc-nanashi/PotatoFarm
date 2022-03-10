@@ -1,0 +1,30 @@
+name: "Build with nexe"
+on:
+  push:
+    tags:
+      - v*
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v2
+      - name: "Setup node"
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: "Install dependencies"
+        run: npm install
+      - name: "Compile"
+        run: npm compile
+      - name: "Push to releases"
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            README.md
+            dist/PotatoFarm-win-x64.exe
+            dist/PotatoFarm-win-x86.exe
+            dist/PotatoFarm-linux-x64
+            dist/PotatoFarm-linux-x86
+            dist/PotatoFarm-mac-x64
+            dist/PotatoFarm-max-x86
