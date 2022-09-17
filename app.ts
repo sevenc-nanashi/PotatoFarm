@@ -11,6 +11,7 @@ import * as os from "os"
 import axios from "axios"
 import lastModified from "recursive-last-modified"
 import { ServerInfo } from "sonolus-core"
+import path = require("path")
 
 const app = express()
 const version = JSON.parse(fssync.readFileSync("package.json", "utf8"))[
@@ -103,7 +104,11 @@ async function getLevels() {
     await fs.readdir("./levels", {
       withFileTypes: true,
     })
-  ).filter((dirent: fssync.Dirent) => dirent.isDirectory())
+  ).filter((dirent: fssync.Dirent) => {
+    // シンボリックリンクもディレクトリとしたいのでstatを使う
+    const stat = fssync.statSync("./levels/" + dirent.name)
+    return stat.isDirectory()
+  })
   for (let level of levelFs) {
     if (
       (
@@ -247,21 +252,19 @@ app.get("/sonolus/levels/:id", async (req: Request, res: Response) => {
 
 app.get("/local/:id/bgm", async (req: Request, res: Response) => {
   printSection(`Sonolus: /local/${req.params.id}/bgm`, "yellow")
-  res.send(
-    await fs.readFile((await glob(`./levels/${req.params.id}/bgm.*`))[0])
-  )
+  res.sendFile(path.resolve((await glob(`./levels/${req.params.id}/bgm.*`))[0]))
 })
 
 app.get("/local/:id/jacket", async (req: Request, res: Response) => {
   printSection(`Sonolus: /local/${req.params.id}/jacket`, "yellow")
-  let path: string | undefined = (
+  let jacketPath: string | undefined = (
     await glob(`./levels/${req.params.id}/jacket.*`)
   )[0]
-  if (path) {
-    printInfo(`${path} が見つかりました。`)
-    res.send(await fs.readFile(path))
+  if (jacketPath) {
+    printInfo(`${jacketPath} が見つかりました。`)
+    res.sendFile(path.resolve(jacketPath))
   } else {
-    printWarn(`${path} が見つかりませんでした。`)
+    printWarn(`${jacketPath} が見つかりませんでした。`)
     res.send(await fs.readFile(`public/empty.png`))
   }
 })
