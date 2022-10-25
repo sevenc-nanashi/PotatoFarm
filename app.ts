@@ -417,9 +417,9 @@ function tryListen(port: number, tries: number) {
 async function setEngine() {
   engine = JSON.parse(
     JSON.stringify(
-      (await axios.get("https://servers.purplepalette.net/sonolus/levels/list"))
-        .data.items[0].engine
-    ).replace(/"\//g, '"https://servers.purplepalette.net/')
+      (await axios.get("https://fp.sevenc7c.com/sonolus/engines/frpt-pjsekai.extended"))
+        .data.item
+    ).replace(/"\//g, '"https://fp.sevenc7c.com/')
   )
 }
 
