@@ -19,6 +19,8 @@ const version = JSON.parse(fssync.readFileSync("package.json", "utf8"))[
 ]
 let engine = null
 
+const HOME = process.env.USERPROFILE || process.env.HOME
+
 app.use(express.json())
 
 // -- Config -------------------------------------------
@@ -31,16 +33,16 @@ const defaultConfig = {
 async function getConfig(key: string = undefined): Promise<any> {
   if (
     !(await fs
-      .stat(process.env.USERPROFILE + "/PotatoFarm.json")
+      .stat(HOME + "/PotatoFarm.json")
       .catch(() => false))
   ) {
     await fs.writeFile(
-      process.env.USERPROFILE + "/PotatoFarm.json",
+      HOME + "/PotatoFarm.json",
       JSON.stringify(defaultConfig)
     )
   }
   const text = await fs.readFile(
-    process.env.USERPROFILE + "/PotatoFarm.json",
+    HOME + "/PotatoFarm.json",
     "utf8"
   )
   const json = JSON.parse(text)
@@ -50,12 +52,12 @@ async function getConfig(key: string = undefined): Promise<any> {
 
 async function setConfig(data: any) {
   const text = await fs.readFile(
-    process.env.USERPROFILE + "/PotatoFarm.json",
+    HOME + "/PotatoFarm.json",
     "utf8"
   )
   const json = JSON.parse(text)
   return await fs.writeFile(
-    process.env.USERPROFILE + "/PotatoFarm.json",
+    HOME + "/PotatoFarm.json",
     JSON.stringify({
       ...defaultConfig,
       ...json,
@@ -187,7 +189,7 @@ class Level {
         url: `/local/${this.id}/data`,
       },
       engine: engine,
-      name: this.id,
+      name: "ptfm-" + this.id,
       rating: 0,
       title: this.data.title,
       useBackground: {
