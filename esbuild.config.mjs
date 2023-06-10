@@ -1,6 +1,7 @@
 import * as esbuild from "esbuild"
 import fs from "fs/promises"
 
+await fs.mkdir("./dist", { recursive: true })
 await fs.copyFile("./app.ts", "./dist/app.ts")
 
 let base = await fs.readFile("./app.ts", "utf-8")
