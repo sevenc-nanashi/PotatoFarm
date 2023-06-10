@@ -1,9 +1,7 @@
 {
+  "extends": "@tsconfig/node18/tsconfig.json",
   "compilerOptions": {
-    "esModuleInterop": true,
-    "module": "commonjs",
-    "lib": [
-      "es2021"
-    ],
+    "outDir": "dist",
+    "resolveJsonModule": true
   }
 }

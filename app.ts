@@ -1,23 +1,21 @@
-import express = require("express")
-import { Express, Request, Response } from "express"
+import express from "express"
+import { Request, Response } from "express"
 import { promises as fs } from "fs"
-import { fromSus } from "sonolus-pjsekai-engine"
+import { fromSus } from "sonolus-pjsekai-engine-extended"
 import { gzipSync } from "zlib"
-import syncGlob = require("glob")
+import { glob } from "glob"
 import "@colors/colors"
-import "ejs"
+import ejs from "ejs"
 import * as fssync from "fs"
 import * as os from "os"
 import axios from "axios"
 import lastModified from "recursive-last-modified"
-import { ServerInfo } from "sonolus-core"
-import path = require("path")
+import { EngineItem, ServerInfo } from "sonolus-core"
+import path from "path"
+import { version } from "./package.json"
 
 const app = express()
-const version = JSON.parse(fssync.readFileSync("package.json", "utf8"))[
-  "version"
-]
-let engine = null
+let engine: EngineItem = {} as EngineItem
 
 const HOME = process.env.USERPROFILE || process.env.HOME
 
@@ -25,36 +23,27 @@ app.use(express.json())
 
 // -- Config -------------------------------------------
 
-const defaultConfig = {
+const defaultConfig: Record<string, unknown> = {
   port: 5010,
   downloadPath: "%USERPROFILE%/Downloads",
 }
 
-async function getConfig(key: string = undefined): Promise<any> {
-  if (
-    !(await fs
-      .stat(HOME + "/PotatoFarm.json")
-      .catch(() => false))
-  ) {
-    await fs.writeFile(
-      HOME + "/PotatoFarm.json",
-      JSON.stringify(defaultConfig)
-    )
+async function getConfig(key: string | undefined = undefined): Promise<any> {
+  if (!(await fs.stat(HOME + "/PotatoFarm.json").catch(() => false))) {
+    await fs.writeFile(HOME + "/PotatoFarm.json", JSON.stringify(defaultConfig))
   }
-  const text = await fs.readFile(
-    HOME + "/PotatoFarm.json",
-    "utf8"
-  )
+  const text = await fs.readFile(HOME + "/PotatoFarm.json", "utf8")
   const json = JSON.parse(text)
   if (key === undefined) return json
-  return json[key] || defaultConfig[key]
+  const ret = json[key] ?? defaultConfig[key]
+  if (!ret) {
+    throw new Error(`Config key ${key} not found.`)
+  }
+  return ret
 }
 
 async function setConfig(data: any) {
-  const text = await fs.readFile(
-    HOME + "/PotatoFarm.json",
-    "utf8"
-  )
+  const text = await fs.readFile(HOME + "/PotatoFarm.json", "utf8")
   const json = JSON.parse(text)
   return await fs.writeFile(
     HOME + "/PotatoFarm.json",
@@ -73,17 +62,8 @@ function replaceSlash(path: string) {
 }
 
 function parseEnv(str: string) {
-  return str.replace(/%([a-zA-Z0-9]+)%/g, function (_match, name) {
-    return process.env[name]
-  })
-}
-
-function glob(pattern: string): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    syncGlob(pattern, (error: Error | null, result: string[]) => {
-      if (error) reject(error)
-      else resolve(result)
-    })
+  return str.replace(/%([a-zA-Z0-9]+)%/g, (_match, name) => {
+    return process.env[name] || ""
   })
 }
 
@@ -101,7 +81,7 @@ function streamMove(src: string, dest: string) {
 }
 
 async function getLevels() {
-  let levels = []
+  let levels: Level[] = []
   let levelFs = (
     await fs.readdir("./levels", {
       withFileTypes: true,
@@ -111,16 +91,16 @@ async function getLevels() {
     const stat = fssync.statSync("./levels/" + dirent.name)
     return stat.isDirectory()
   })
-  for (let level of levelFs) {
+  for (let levelDir of levelFs) {
     if (
       (
         await Promise.all(
           ["data.sus", "bgm.*", "jacket.*"].map(async (file) => {
-            if ((await glob(`./levels/${level.name}/${file}`)).length > 0) {
+            if ((await glob(`./levels/${levelDir.name}/${file}`)).length > 0) {
               return true
             } else {
               printWarn(
-                `./levels/${level.name}/${file} が見つかりませんでした。`
+                `./levels/${levelDir.name}/${file} が見つかりませんでした。`
               )
               return false
             }
@@ -129,14 +109,14 @@ async function getLevels() {
       ).every((e) => e)
     ) {
       printInfo(
-        `./levels/${level.name} が有効なディレクトリとして認識されました。`
+        `./levels/${levelDir.name} が有効なディレクトリとして認識されました。`
       )
       let level_data = await fs.readFile(
-        `./levels/${level.name}/data.sus`,
+        `./levels/${levelDir.name}/data.sus`,
         "utf8"
       )
       levels.push(
-        new Level(level.name, {
+        new Level(levelDir.name, {
           title: level_data.match(/#TITLE\s+"(.*)"/)![1],
         })
       )
@@ -149,9 +129,10 @@ async function getLevels() {
 }
 
 function printSection(section: string, color: string) {
-  // @ts-ignore
   console.log(
+    // @ts-ignore
     "\n-- "[color] +
+      // @ts-ignore
       section.trim()[color] +
       " " +
       "-".repeat(Math.max(50 - section.length, 0)).grey
@@ -179,19 +160,22 @@ class Level {
       bgm: {
         type: "LevelBgm",
         url: `/local/${this.id}/bgm`,
+        hash: "",
       },
       cover: {
         type: "LevelCover",
         url: `/local/${this.id}/jacket`,
+        hash: "",
       },
       data: {
         type: "LevelData",
         url: `/local/${this.id}/data`,
+        hash: "",
       },
-      engine: engine,
+      engine,
       name: "ptfm-" + this.id,
       rating: 0,
-      title: this.data.title,
+      title: this.data.title || this.id,
       useBackground: {
         useDefault: true,
       },
@@ -215,14 +199,21 @@ app.get("/sonolus/info", async (req: Request, res: Response) => {
   printSection("Sonolus: /info", "green")
   const levels = await getLevels()
   res.json({
+    title: "PotatoFarm",
+    banner: {
+      type: "ServerBanner",
+      hash: "",
+      url: "",
+    },
     levels: {
       items: levels.slice(0, 5).map((level) => level.json()),
+      search: { options: [] },
     },
-    skins: { items: [] },
-    backgrounds: { items: [] },
-    particles: { items: [] },
-    effects: { items: [] },
-    engines: { items: [] },
+    skins: { items: [], search: { options: [] } },
+    backgrounds: { items: [], search: { options: [] } },
+    particles: { items: [], search: { options: [] } },
+    effects: { items: [], search: { options: [] } },
+    engines: { items: [], search: { options: [] } },
   } as ServerInfo)
 })
 
@@ -236,15 +227,13 @@ app.get("/sonolus/levels/list", async (req: Request, res: Response) => {
 })
 
 app.get("/sonolus/levels/:id", async (req: Request, res: Response) => {
-  printSection(`Sonolus: /levels/${req.params.id}`, "yellow")
-  let level_data = await fs.readFile(
-    `./levels/${req.params.id}/data.sus`,
-    "utf8"
-  )
-  let title = level_data.match(/#TITLE\s+"(.*)"/)![1]
-  printInfo(`./levels/${req.params.id} - ${title} を読み込んでいます。`)
+  const levelName = req.params.id.replace(/^ptfm-/, "")
+  printSection(`Sonolus: /levels/${levelName}`, "yellow")
+  let levelData = await fs.readFile(`./levels/${levelName}/data.sus`, "utf8")
+  let title = levelData.match(/#TITLE\s+"(.*)"/)![1]
+  printInfo(`./levels/${levelName} - ${title} を読み込んでいます。`)
   res.json({
-    item: new Level(req.params.id, {
+    item: new Level(levelName, {
       title,
     }).json(),
     description: "",
@@ -253,14 +242,17 @@ app.get("/sonolus/levels/:id", async (req: Request, res: Response) => {
 })
 
 app.get("/local/:id/bgm", async (req: Request, res: Response) => {
-  printSection(`Sonolus: /local/${req.params.id}/bgm`, "yellow")
-  res.sendFile(path.resolve((await glob(`./levels/${req.params.id}/bgm.*`))[0]))
+  const levelName = req.params.id.replace(/^ptfm-/, "")
+  printSection(`Sonolus: /local/${levelName}/bgm`, "yellow")
+  printInfo(`./levels/${levelName}/bgm.* を読み込んでいます。`)
+  res.sendFile(path.resolve((await glob(`./levels/${levelName}/bgm.*`))[0]))
 })
 
 app.get("/local/:id/jacket", async (req: Request, res: Response) => {
-  printSection(`Sonolus: /local/${req.params.id}/jacket`, "yellow")
+  const levelName = req.params.id.replace(/^ptfm-/, "")
+  printSection(`Sonolus: /local/${levelName}/jacket`, "yellow")
   let jacketPath: string | undefined = (
-    await glob(`./levels/${req.params.id}/jacket.*`)
+    await glob(`./levels/${levelName}/jacket.*`)
   )[0]
   if (jacketPath) {
     printInfo(`${jacketPath} が見つかりました。`)
@@ -272,9 +264,10 @@ app.get("/local/:id/jacket", async (req: Request, res: Response) => {
 })
 
 app.get("/local/:id/data", async (req: Request, res: Response) => {
-  printSection(`Sonolus: /local/${req.params.id}/data`, "yellow")
-  printInfo(`./levels/${req.params.id}/data.sus を変換中です。`)
-  let data = await fs.readFile(`./levels/${req.params.id}/data.sus`, "utf8")
+  const levelName = req.params.id.replace(/^ptfm-/, "")
+  printSection(`Sonolus: /local/${levelName}/data`, "yellow")
+  printInfo(`./levels/${levelName}/data.sus を変換中です。`)
+  let data = await fs.readFile(`./levels/${levelName}/data.sus`, "utf8")
   res.send(gzipSync(JSON.stringify(fromSus(data))))
 })
 
@@ -319,7 +312,7 @@ app.use(express.static("public"))
 
 app.get("/", async (_req: Request, res: Response) => {
   printSection("UI: /", "magenta")
-  let levels = []
+  let levels: LevelData[] = []
   printInfo("譜面を取得しています。")
   for (let level of await getLevels()) {
     // printInfo(`./levels/${level.name} が有効なディレクトリとして認識されました。`)
@@ -341,12 +334,17 @@ app.get("/", async (_req: Request, res: Response) => {
 
     levels.push(data)
   }
-  res.render("index.ejs", {
-    levels,
-    defaultConfig,
-    file: replaceSlash(process.env.USERPROFILE + "/PotatoFarm.json"),
-    config: await getConfig(),
-  })
+  const indexEjs = await fs.readFile("./views/index.ejs")
+
+  res.header("Content-Type", "text/html")
+  res.send(
+    ejs.render(indexEjs.toString(), {
+      levels,
+      defaultConfig,
+      file: replaceSlash(process.env.USERPROFILE + "/PotatoFarm.json"),
+      config: await getConfig(),
+    })
+  )
 })
 
 app.post("/ui/config", async (req: Request, res: Response) => {
@@ -419,9 +417,12 @@ function tryListen(port: number, tries: number) {
 async function setEngine() {
   engine = JSON.parse(
     JSON.stringify(
-      (await axios.get("https://fp.sevenc7c.com/sonolus/engines/frpt-pjsekai.extended"))
-        .data.item
-    ).replace(/"\//g, '"https://fp.sevenc7c.com/')
+      (
+        await axios.get(
+          "https://cc.sevenc7c.com/sonolus/engines/chcy-pjsekai-extended"
+        )
+      ).data.item
+    ).replace(/"\//g, '"https://cc.sevenc7c.com/')
   )
 }
 

@@ -5,26 +5,28 @@ on:
       - v*
 jobs:
   main:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v2
-      - name: "Setup node"
-        uses: actions/setup-node@v2
+        uses: actions/checkout@v3
+      - name: "Setup pnpm"
+        uses: pnpm/action-setup@v2
         with:
-          node-version: '14'
+          version: "7.28"
+      - name: "Setup node"
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "pnpm"
       - name: "Install dependencies"
-        run: npm install --no-optional
+        run: pnpm i
       - name: "Compile"
-        run: npm compile
+        run: pnpm compile
       - name: "Push to releases"
         uses: softprops/action-gh-release@v1
         with:
           files: |
             README.md
-            dist/PotatoFarm-win-x64.exe
-            dist/PotatoFarm-win-x86.exe
-            dist/PotatoFarm-linux-x64
-            dist/PotatoFarm-linux-x86
-            dist/PotatoFarm-mac-x64
-            dist/PotatoFarm-max-x86
+            dist/PotatoFarm.exe
+
+
